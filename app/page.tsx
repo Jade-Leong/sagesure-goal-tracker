@@ -1,0 +1,96 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Header from "@/components/Header";
+import Section from "@/components/Section";
+import GoalTable from "@/components/GoalTable";
+import WeeklyLog from "@/components/WeeklyLog";
+import DailyTracker from "@/components/DailyTracker";
+import { TrackerData, loadTrackerData, saveTrackerData } from "@/lib/storage";
+import { defaultTrackerData } from "@/lib/defaultData";
+
+type Tab = "weekly" | "daily";
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<Tab>("weekly");
+  const [data, setData] = useState<TrackerData>(defaultTrackerData);
+  const [saveState, setSaveState] = useState("Loading");
+
+  useEffect(() => {
+    loadTrackerData()
+      .then((loaded) => setData(loaded))
+      .finally(() => setSaveState("Saved"));
+  }, []);
+
+  useEffect(() => {
+    if (saveState === "Loading") return;
+
+    setSaveState("Saving");
+    const timeout = window.setTimeout(() => {
+      saveTrackerData(data)
+        .then(() => setSaveState("Saved"))
+        .catch(() => setSaveState("Saved locally"));
+    }, 400);
+
+    return () => window.clearTimeout(timeout);
+  }, [data, saveState]);
+
+  return (
+    <main className="wrap">
+      <Header />
+
+      <nav className="tracker-nav" aria-label="Tracker pages">
+        <button
+          className={activeTab === "weekly" ? "active" : ""}
+          onClick={() => setActiveTab("weekly")}
+          type="button"
+        >
+          Weekly Tracker
+        </button>
+        <button
+          className={activeTab === "daily" ? "active" : ""}
+          onClick={() => setActiveTab("daily")}
+          type="button"
+        >
+          Daily Tracker
+        </button>
+        <span className="save-state">{saveState}</span>
+      </nav>
+
+      {activeTab === "weekly" ? (
+        <>
+          <Section number="01" title="About this document">
+            <p className="prose">
+              This is your personal summer tracker. Use it to capture what you worked on, what you learned, where
+              you got stuck, and what kind of support would help you keep growing. It is meant to be practical,
+              honest, and useful for both weekly reflection and end-of-summer storytelling.
+            </p>
+          </Section>
+
+          <Section number="02" title="Summer goals">
+            <GoalTable goals={data.goals} onChange={(goals) => setData((current) => ({ ...current, goals }))} />
+          </Section>
+
+          <Section number="03" title="Weekly log">
+            <WeeklyLog
+              weeklyLogs={data.weekly_logs}
+              managerFeedback={data.manager_feedback}
+              onWeeklyChange={(weekly_logs) => setData((current) => ({ ...current, weekly_logs }))}
+              onFeedbackChange={(manager_feedback) => setData((current) => ({ ...current, manager_feedback }))}
+            />
+          </Section>
+
+          <footer className="footer">Built for Jade&apos;s SageSure summer internship tracker.</footer>
+        </>
+      ) : (
+        <DailyTracker
+          dailyEntries={data.daily_entries}
+          meetingCards={data.meeting_cards}
+          onChange={(daily_entries, meeting_cards) =>
+            setData((current) => ({ ...current, daily_entries, meeting_cards }))
+          }
+        />
+      )}
+    </main>
+  );
+}
