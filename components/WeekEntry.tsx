@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ManagerFeedback, WeeklyLogEntry } from "@/lib/types";
 import EditableField from "./EditableField";
 import RatingInput from "./RatingInput";
@@ -9,71 +9,147 @@ type WeekEntryProps = {
   entry: WeeklyLogEntry;
   feedback?: ManagerFeedback;
   defaultOpen?: boolean;
-  onEntryChange: (patch: Partial<WeeklyLogEntry>) => void;
-  onFeedbackChange: (patch: Partial<ManagerFeedback>) => void;
+  onEntrySave: (entry: WeeklyLogEntry) => void;
+  onFeedbackSave: (feedback: ManagerFeedback) => void;
 };
+
+const entryFields: (keyof Pick<
+  WeeklyLogEntry,
+  "worked_on" | "business_impact" | "learned" | "hard" | "focus_next_week" | "goal_progress"
+>)[] = ["worked_on", "business_impact", "learned", "hard", "focus_next_week", "goal_progress"];
+
+const feedbackFields: (keyof Pick<
+  ManagerFeedback,
+  | "clarity_rating"
+  | "clarity_note"
+  | "support_rating"
+  | "support_note"
+  | "feedback_quality_rating"
+  | "feedback_quality_note"
+  | "growth_rating"
+  | "growth_note"
+  | "open_reflection_good"
+  | "open_reflection_different"
+  | "open_reflection_needs"
+  | "one_word"
+>)[] = [
+  "clarity_rating",
+  "clarity_note",
+  "support_rating",
+  "support_note",
+  "feedback_quality_rating",
+  "feedback_quality_note",
+  "growth_rating",
+  "growth_note",
+  "open_reflection_good",
+  "open_reflection_different",
+  "open_reflection_needs",
+  "one_word"
+];
 
 export default function WeekEntry({
   entry,
   feedback,
   defaultOpen = false,
-  onEntryChange,
-  onFeedbackChange
+  onEntrySave,
+  onFeedbackSave
 }: WeekEntryProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const [draftEntry, setDraftEntry] = useState(entry);
+  const [draftFeedback, setDraftFeedback] = useState(feedback);
+  const [status, setStatus] = useState("Saved");
+
+  useEffect(() => {
+    setDraftEntry(entry);
+    setStatus("Saved");
+  }, [entry]);
+
+  useEffect(() => {
+    setDraftFeedback(feedback);
+    setStatus("Saved");
+  }, [feedback]);
+
+  const entryHasChanges = entryFields.some((field) => draftEntry[field] !== entry[field]);
+  const feedbackHasChanges =
+    Boolean(feedback && draftFeedback) && feedbackFields.some((field) => draftFeedback?.[field] !== feedback?.[field]);
+  const hasUnsavedChanges = entryHasChanges || feedbackHasChanges;
+
+  function updateEntryDraft(patch: Partial<WeeklyLogEntry>) {
+    setDraftEntry((current) => ({ ...current, ...patch }));
+    setStatus("Unsaved");
+  }
+
+  function updateFeedbackDraft(patch: Partial<ManagerFeedback>) {
+    setDraftFeedback((current) => (current ? { ...current, ...patch } : current));
+    setStatus("Unsaved");
+  }
+
+  function saveWeek() {
+    onEntrySave(draftEntry);
+    if (draftFeedback) onFeedbackSave(draftFeedback);
+    setStatus("Saved");
+  }
 
   return (
     <article className={`week-entry ${open ? "open" : ""}`}>
       <button className="week-entry-header" type="button" onClick={() => setOpen((current) => !current)}>
         <span className="week-label">{entry.week_label}</span>
         <span className="week-dates">{entry.week_dates}</span>
-        <span className="week-chevron">⌄</span>
+        <span className={`week-save-badge ${hasUnsavedChanges ? "unsaved" : ""}`}>{status}</span>
+        <span className="week-chevron">v</span>
       </button>
       <div className="week-body">
+        <div className="week-save-row">
+          <span className={`card-save-status ${hasUnsavedChanges ? "unsaved" : ""}`}>{status}</span>
+          <button className="accent-button" type="button" onClick={saveWeek} disabled={!hasUnsavedChanges}>
+            Save week
+          </button>
+        </div>
+
         <div className="week-fields">
           <EditableField
             full
             label="What I worked on"
-            value={entry.worked_on}
+            value={draftEntry.worked_on}
             placeholder="Add your notes here"
-            onChange={(worked_on) => onEntryChange({ worked_on })}
+            onChange={(worked_on) => updateEntryDraft({ worked_on })}
           />
           <EditableField
             full
             label="Business impact"
-            value={entry.business_impact}
+            value={draftEntry.business_impact}
             placeholder="What changed because of this work? Did it save time, improve clarity, support a decision, reduce risk, help customers, help internal teams, or move a project forward?"
-            onChange={(business_impact) => onEntryChange({ business_impact })}
+            onChange={(business_impact) => updateEntryDraft({ business_impact })}
           />
           <EditableField
             label="Something I learned"
-            value={entry.learned}
+            value={draftEntry.learned}
             placeholder="Add your notes here"
-            onChange={(learned) => onEntryChange({ learned })}
+            onChange={(learned) => updateEntryDraft({ learned })}
           />
           <EditableField
             label="Something that was hard"
-            value={entry.hard}
+            value={draftEntry.hard}
             placeholder="Add your notes here"
-            onChange={(hard) => onEntryChange({ hard })}
+            onChange={(hard) => updateEntryDraft({ hard })}
           />
           <EditableField
             full
             label="What I want to focus on next week"
-            value={entry.focus_next_week}
+            value={draftEntry.focus_next_week}
             placeholder="Add your notes here"
-            onChange={(focus_next_week) => onEntryChange({ focus_next_week })}
+            onChange={(focus_next_week) => updateEntryDraft({ focus_next_week })}
           />
           <EditableField
             full
             label="Goal progress check"
-            value={entry.goal_progress}
+            value={draftEntry.goal_progress}
             placeholder="Any movement on your summer goals this week?"
-            onChange={(goal_progress) => onEntryChange({ goal_progress })}
+            onChange={(goal_progress) => updateEntryDraft({ goal_progress })}
           />
         </div>
 
-        {feedback ? (
+        {draftFeedback ? (
           <>
             <div className="divider"></div>
             <p className="prose">
@@ -85,34 +161,34 @@ export default function WeekEntry({
               <RatingInput
                 label="Clarity of direction"
                 description="Do you know what you're working on and why it matters? Are priorities clear?"
-                rating={feedback.clarity_rating}
-                note={feedback.clarity_note}
-                onRatingChange={(clarity_rating) => onFeedbackChange({ clarity_rating })}
-                onNoteChange={(clarity_note) => onFeedbackChange({ clarity_note })}
+                rating={draftFeedback.clarity_rating}
+                note={draftFeedback.clarity_note}
+                onRatingChange={(clarity_rating) => updateFeedbackDraft({ clarity_rating })}
+                onNoteChange={(clarity_note) => updateFeedbackDraft({ clarity_note })}
               />
               <RatingInput
                 label="Availability and support"
                 description="When you needed help or had a question, was Jamie accessible and useful?"
-                rating={feedback.support_rating}
-                note={feedback.support_note}
-                onRatingChange={(support_rating) => onFeedbackChange({ support_rating })}
-                onNoteChange={(support_note) => onFeedbackChange({ support_note })}
+                rating={draftFeedback.support_rating}
+                note={draftFeedback.support_note}
+                onRatingChange={(support_rating) => updateFeedbackDraft({ support_rating })}
+                onNoteChange={(support_note) => updateFeedbackDraft({ support_note })}
               />
               <RatingInput
                 label="Feedback quality"
                 description="Was the feedback you received this week specific, actionable, and fair?"
-                rating={feedback.feedback_quality_rating}
-                note={feedback.feedback_quality_note}
-                onRatingChange={(feedback_quality_rating) => onFeedbackChange({ feedback_quality_rating })}
-                onNoteChange={(feedback_quality_note) => onFeedbackChange({ feedback_quality_note })}
+                rating={draftFeedback.feedback_quality_rating}
+                note={draftFeedback.feedback_quality_note}
+                onRatingChange={(feedback_quality_rating) => updateFeedbackDraft({ feedback_quality_rating })}
+                onNoteChange={(feedback_quality_note) => updateFeedbackDraft({ feedback_quality_note })}
               />
               <RatingInput
                 label="Learning and growth"
                 description="Did this week stretch you? Did Jamie create space for you to learn, try things, and own your work?"
-                rating={feedback.growth_rating}
-                note={feedback.growth_note}
-                onRatingChange={(growth_rating) => onFeedbackChange({ growth_rating })}
-                onNoteChange={(growth_note) => onFeedbackChange({ growth_note })}
+                rating={draftFeedback.growth_rating}
+                note={draftFeedback.growth_note}
+                onRatingChange={(growth_rating) => updateFeedbackDraft({ growth_rating })}
+                onNoteChange={(growth_note) => updateFeedbackDraft({ growth_note })}
               />
             </div>
             <div className="divider"></div>
@@ -120,26 +196,26 @@ export default function WeekEntry({
               <FeedbackPrompt
                 label="What's one thing Jamie does well as a manager?"
                 helper="Be specific. Supportive is nice; business context, prioritization, or feedback examples are more useful."
-                value={feedback.open_reflection_good}
-                onChange={(open_reflection_good) => onFeedbackChange({ open_reflection_good })}
+                value={draftFeedback.open_reflection_good}
+                onChange={(open_reflection_good) => updateFeedbackDraft({ open_reflection_good })}
               />
               <FeedbackPrompt
                 label="What's one thing Jamie could do differently?"
                 helper="Think about what would make your work easier, clearer, or more meaningful."
-                value={feedback.open_reflection_different}
-                onChange={(open_reflection_different) => onFeedbackChange({ open_reflection_different })}
+                value={draftFeedback.open_reflection_different}
+                onChange={(open_reflection_different) => updateFeedbackDraft({ open_reflection_different })}
               />
               <FeedbackPrompt
                 label="Is there anything you need that you haven't gotten yet?"
                 helper="Context, access, feedback, autonomy, stretch assignments, or introductions."
-                value={feedback.open_reflection_needs}
-                onChange={(open_reflection_needs) => onFeedbackChange({ open_reflection_needs })}
+                value={draftFeedback.open_reflection_needs}
+                onChange={(open_reflection_needs) => updateFeedbackDraft({ open_reflection_needs })}
               />
               <FeedbackPrompt
                 label="One word that describes working here so far"
                 helper="No wrong answer. Update it whenever it changes."
-                value={feedback.one_word}
-                onChange={(one_word) => onFeedbackChange({ one_word })}
+                value={draftFeedback.one_word}
+                onChange={(one_word) => updateFeedbackDraft({ one_word })}
               />
             </div>
             <div className="tip-box">

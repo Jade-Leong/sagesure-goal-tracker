@@ -15,25 +15,39 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("weekly");
   const [data, setData] = useState<TrackerData>(defaultTrackerData);
   const [saveState, setSaveState] = useState("Loading");
+  const [saveProgress, setSaveProgress] = useState(20);
+  const [readyToSave, setReadyToSave] = useState(false);
 
   useEffect(() => {
     loadTrackerData()
       .then((loaded) => setData(loaded))
-      .finally(() => setSaveState("Saved"));
+      .finally(() => {
+        setSaveState("Saved");
+        setSaveProgress(100);
+        setReadyToSave(true);
+      });
   }, []);
 
   useEffect(() => {
-    if (saveState === "Loading") return;
+    if (!readyToSave) return;
 
     setSaveState("Saving");
+    setSaveProgress(35);
     const timeout = window.setTimeout(() => {
+      setSaveProgress(72);
       saveTrackerData(data)
-        .then(() => setSaveState("Saved"))
-        .catch(() => setSaveState("Saved locally"));
+        .then(() => {
+          setSaveState("Saved");
+          setSaveProgress(100);
+        })
+        .catch(() => {
+          setSaveState("Saved locally");
+          setSaveProgress(100);
+        });
     }, 400);
 
     return () => window.clearTimeout(timeout);
-  }, [data, saveState]);
+  }, [data, readyToSave]);
 
   return (
     <main className="wrap">
@@ -55,6 +69,9 @@ export default function Home() {
           Daily Tracker
         </button>
         <span className="save-state">{saveState}</span>
+        <span className="save-progress" aria-hidden="true">
+          <span style={{ width: `${saveProgress}%` }}></span>
+        </span>
       </nav>
 
       {activeTab === "weekly" ? (

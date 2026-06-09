@@ -14,14 +14,12 @@ export default function WeeklyLog({
   onWeeklyChange,
   onFeedbackChange
 }: WeeklyLogProps) {
-  function updateLog(id: string, patch: Partial<WeeklyLogEntry>) {
-    onWeeklyChange(weeklyLogs.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)));
+  function saveLog(savedEntry: WeeklyLogEntry) {
+    onWeeklyChange(weeklyLogs.map((entry) => (entry.id === savedEntry.id ? savedEntry : entry)));
   }
 
-  function updateFeedback(weekNumber: number, patch: Partial<ManagerFeedback>) {
-    onFeedbackChange(
-      managerFeedback.map((entry) => (entry.week_number === weekNumber ? { ...entry, ...patch } : entry))
-    );
+  function saveFeedback(savedFeedback: ManagerFeedback) {
+    onFeedbackChange(managerFeedback.map((entry) => (entry.id === savedFeedback.id ? savedFeedback : entry)));
   }
 
   return (
@@ -32,8 +30,8 @@ export default function WeeklyLog({
           entry={entry}
           feedback={managerFeedback.find((item) => item.week_number === entry.week_number)}
           defaultOpen={index === 0}
-          onEntryChange={(patch) => updateLog(entry.id, patch)}
-          onFeedbackChange={(patch) => updateFeedback(entry.week_number, patch)}
+          onEntrySave={saveLog}
+          onFeedbackSave={saveFeedback}
         />
       ))}
     </div>

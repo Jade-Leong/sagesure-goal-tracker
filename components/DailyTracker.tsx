@@ -108,7 +108,7 @@ export default function DailyTracker({ dailyEntries, meetingCards, onChange }: D
                   <MeetingCard
                     key={card.id}
                     meeting={card}
-                    onChange={(patch) => updateMeeting(card.id, patch)}
+                    onSave={(meeting) => updateMeeting(card.id, meeting)}
                     onDelete={() => deleteMeeting(card.id)}
                   />
                 ))}

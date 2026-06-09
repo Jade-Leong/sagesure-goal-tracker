@@ -34,6 +34,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .wrap {
   max-width: 780px;
   margin: 0 auto;
@@ -71,13 +76,14 @@ button {
 }
 
 .tracker-nav {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--white);
   border: 0.5px solid var(--border);
   border-radius: 10px;
-  padding: 8px;
+  padding: 8px 8px 12px;
   margin-bottom: 12px;
 }
 
@@ -103,12 +109,32 @@ button {
   font-size: 11px;
 }
 
+.save-progress {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 5px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 68, 56, 0.08);
+}
+
+.save-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green-accent), var(--blue-accent));
+  transition: width 0.35s ease;
+}
+
 .section {
   background: var(--white);
   border-radius: 10px;
   border: 0.5px solid var(--border);
   margin-bottom: 12px;
   overflow: hidden;
+  animation: fade-up 0.28s ease both;
 }
 
 .section-header {
@@ -173,7 +199,7 @@ button {
 .prompt-label,
 .week-field label,
 .meeting-field span,
-.goal-table th {
+.goal-card span {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -188,34 +214,7 @@ button {
   margin: 4px 0 8px;
 }
 
-.table-wrap {
-  overflow-x: auto;
-}
-
-.goal-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  min-width: 680px;
-}
-
-.goal-table th {
-  text-align: left;
-  padding: 0 12px 10px 0;
-  border-bottom: 0.5px solid var(--border);
-}
-
-.goal-table td {
-  padding: 12px 12px 12px 0;
-  vertical-align: top;
-  border-bottom: 0.5px solid var(--border);
-  line-height: 1.5;
-  color: var(--gray);
-}
-
-.goal-table input,
-.goal-table textarea,
-.goal-table select,
+.goal-card textarea,
 .field-box,
 .rating-note-input,
 .prompt-input,
@@ -243,41 +242,55 @@ textarea {
 .prompt-input::placeholder,
 .meeting-card textarea::placeholder,
 .meeting-card input::placeholder,
-.goal-table input::placeholder,
-.goal-table textarea::placeholder {
+.goal-card textarea::placeholder {
   color: #aaa;
   font-style: italic;
 }
 
-.status-pill {
-  display: inline-block;
-  min-width: 118px;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 6px 8px;
-  border-radius: 20px;
-  letter-spacing: 0.04em;
+.goal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.status-not-started {
-  background: #eee;
-  color: #777;
+.goal-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  border: 0.5px solid var(--border);
+  border-radius: 8px;
+  background: #f9f9f7;
+  padding: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.status-in-progress {
-  background: #e8f3fb;
-  color: var(--blue-accent);
+.goal-card:focus-within {
+  border-color: rgba(128, 188, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(62, 64, 66, 0.06);
 }
 
-.status-done {
-  background: #edf7d6;
-  color: #5a8a00;
+.goal-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.goal-card textarea {
+  min-height: 74px;
+  background: var(--white);
 }
 
 .week-entry {
   border: 0.5px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.week-entry:has(.week-save-badge.unsaved) {
+  border-color: rgba(180, 74, 60, 0.35);
+  box-shadow: 0 8px 24px rgba(62, 64, 66, 0.06);
 }
 
 .week-entry-header {
@@ -322,12 +335,40 @@ textarea {
 
 .week-entry.open .week-body {
   display: block;
+  animation: reveal 0.24s ease both;
 }
 
 .week-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+.week-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.week-save-row .accent-button {
+  margin-top: 0;
+}
+
+.week-save-badge {
+  margin-left: auto;
+  border-radius: 999px;
+  background: rgba(0, 68, 56, 0.08);
+  color: var(--muted);
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.week-save-badge.unsaved {
+  background: rgba(180, 74, 60, 0.1);
+  color: var(--danger);
 }
 
 .week-field.full {
@@ -375,6 +416,11 @@ textarea {
   border: 0.5px solid var(--border);
   color: var(--muted);
   background: var(--white);
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.rating-scale button:hover {
+  transform: translateY(-1px);
 }
 
 .rating-scale .r1 {
@@ -441,12 +487,19 @@ textarea {
   color: var(--green-accent);
   padding: 9px 13px;
   margin-top: 14px;
+  transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
+}
+
+.accent-button:not(:disabled):hover {
+  box-shadow: 0 8px 18px rgba(0, 68, 56, 0.12);
+  transform: translateY(-1px);
 }
 
 .text-button {
   background: transparent;
   color: var(--green-dark);
   padding: 8px 0;
+  transition: color 0.16s ease, opacity 0.16s ease;
 }
 
 .text-button.danger {
@@ -513,6 +566,12 @@ textarea {
   border: 0.5px solid var(--border);
   border-radius: 8px;
   padding: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.meeting-card:has(.card-save-status.unsaved) {
+  border-color: rgba(180, 74, 60, 0.35);
+  box-shadow: 0 8px 24px rgba(62, 64, 66, 0.06);
 }
 
 .meeting-card-header {
@@ -534,6 +593,73 @@ textarea {
 
 .meeting-field textarea {
   min-height: 68px;
+}
+
+.meeting-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.meeting-card-actions .accent-button {
+  margin-top: 0;
+}
+
+.card-save-status {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.card-save-status.unsaved {
+  color: var(--danger);
+}
+
+.goal-card textarea:focus,
+.field-box:focus,
+.rating-note-input:focus,
+.prompt-input:focus,
+.meeting-card input:focus,
+.meeting-card textarea:focus,
+.day-header input:focus {
+  background: var(--white);
+  border-color: rgba(128, 188, 0, 0.55);
+  box-shadow: 0 0 0 3px rgba(128, 188, 0, 0.12);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .empty-state {
@@ -587,7 +713,8 @@ textarea {
 
   .week-fields,
   .meeting-grid,
-  .meeting-card-header {
+  .meeting-card-header,
+  .goal-card {
     grid-template-columns: 1fr;
   }
 
